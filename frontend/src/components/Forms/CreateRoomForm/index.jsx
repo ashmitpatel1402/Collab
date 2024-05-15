@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Peer from "peerjs";
-
-const CreateRoomForm = ({ uuid, socket, setUser, setMyPeer }) => {
+import { toast } from "react-toastify";
+const CreateRoomForm = ({ uuid, socket, setUser }) => {
   const [roomId, setRoomId] = useState(uuid());
   const [name, setName] = useState("");
 
@@ -11,37 +10,64 @@ const CreateRoomForm = ({ uuid, socket, setUser, setMyPeer }) => {
   const handleCreateRoom = (e) => {
     e.preventDefault();
 
+    if (!name.trim()) {
+      // If name is empty or contains only whitespaces
+      toast.error("Please enter your name", {
+        position: toast.POSITION.TOP_CENTER,
+        autoClose: 2000,
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+      return;
+    }
+
     // {name,roomId, userId, host, presenter}
+    
+    const roomData = {
+      name,
+      roomId,
+      userId: uuid(),
+      host: true,
+      presenter: true,
+    };
+    setUser(roomData);
+    navigate(`/${roomId}`);
+    console.log(roomData);
+    socket.emit("userJoined", roomData);
+  };
 
-    const myPeer = new Peer(undefined, {
-      host: "/",
-      port: 5001,
-      path: "/",
-      secure: false,
+  const handleCopyClick = () => {
+    // Create a temporary input element
+    const tempInput = document.createElement("input");
+    tempInput.value = roomId;
+    document.body.appendChild(tempInput);
+
+    // Select the text inside the input element
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999); // For mobile devices
+
+    // Copy the selected text to the clipboard
+    document.execCommand("copy");
+
+    // Remove the temporary input element
+    document.body.removeChild(tempInput);
+
+    //toast.success(`Message Copied To Clipboard`);
+    toast.success("Room ID copied successfully", {
+      position: toast.POSITION.TOP_CENTER,
+      autoClose: 2000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
     });
 
-    setMyPeer(myPeer);
-
-    myPeer.on("open", (id) => {
-      const roomData = {
-        name,
-        roomId,
-        userId: id,
-        host: true,
-        presenter: true,
-      };
-      setUser(roomData);
-      navigate(`/${roomId}`);
-      console.log(roomData);
-      socket.emit("userJoined", roomData);
-    });
-    myPeer.on("error", (err) => {
-      console.log("peer connection error", err);
-      this.myPeer.reconnect();
-    });
+    
   };
 
   return (
+    <>
+    
     <form className="form col-md-12 mt-5">
       <div className="form-group">
         <input
@@ -71,6 +97,7 @@ const CreateRoomForm = ({ uuid, socket, setUser, setMyPeer }) => {
             </button>
             <button
               className="btn btn-outline-danger btn-sm me-2"
+              onClick={() => handleCopyClick()}
               type="button"
             >
               copy
@@ -86,6 +113,7 @@ const CreateRoomForm = ({ uuid, socket, setUser, setMyPeer }) => {
         Generate Room
       </button>
     </form>
+    </>
   );
 };
 

@@ -1,32 +1,25 @@
 const express = require("express");
 const app = express();
-
+const cors = require("cors"); 
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
 
-const { addUser, getUser, removeUser } = require("./utils/users");
-
-// const { PeerServer } = require("peer");
-
-// const peerServer = PeerServer({
-//   host:"/".
-//   port: 5001,
-//   path: "/",
-// });
-
-// app.use(peerServer);
+const { addUser, getUser, removeUser , getUsersInRoom} = require("./utils/users");
 
 const io = new Server(server);
-// server.on("upgrade", (request, socket, head) => {});
 
-// routes
-app.get("/", (req, res) => {
-  res.send(
-    "This is mern realtime board sharing app official server by fullyworld web tutorials"
-  );
-});
 
 let roomIdGlobal, imgURLGlobal;
+app.use(cors());
+app.use(express.json());
+app.post("/api/validateRoomId", (req, res) => {
+  const { roomId } = req.body;
+  console.log("Checking room ID:", roomId);
+  // Validate the roomId using the function
+  const isValid = getUsersInRoom(roomId);
+  const isValidRoom=isValid.length>0;
+  res.json({ isValidRoom });
+});
 
 io.on("connection", (socket) => {
   socket.on("userJoined", (data) => {
@@ -42,16 +35,11 @@ io.on("connection", (socket) => {
       socketId: socket.id,
     });
     socket.emit("userIsJoined", { success: true, users });
-    console.log({ name, userId });
+    socket.broadcast.to(roomId).emit("userJoinedMessageBroadcasted", name);
     socket.broadcast.to(roomId).emit("allUsers", users);
-    setTimeout(() => {
-      socket.broadcast
-        .to(roomId)
-        .emit("userJoinedMessageBroadcasted", { name, userId, users });
-      socket.broadcast.to(roomId).emit("whiteBoardDataResponse", {
-        imgURL: imgURLGlobal,
-      });
-    }, 1000);
+    socket.broadcast.to(roomId).emit("whiteBoardDataResponse", {
+      imgURL: imgURLGlobal,
+    });
   });
 
   socket.on("whiteboardData", (data) => {
@@ -75,15 +63,14 @@ io.on("connection", (socket) => {
     const user = getUser(socket.id);
     if (user) {
       removeUser(socket.id);
-      socket.broadcast.to(roomIdGlobal).emit("userLeftMessageBroadcasted", {
-        name: user.name,
-        userId: user.userId,
-      });
+      socket.broadcast
+        .to(roomIdGlobal)
+        .emit("userLeftMessageBroadcasted", user.name);
     }
   });
 });
 
-const port = process.env.PORT || 5000;
+const port = 5000;
 
 server.listen(port, () =>
   console.log("server is running on http://localhost:5000")

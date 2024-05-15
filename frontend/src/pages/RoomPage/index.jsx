@@ -10,12 +10,7 @@ const RoomPage = ({
   user,
   socket,
   users,
-  videoGrid,
   setUsers,
-  myPeer,
-  setPeers,
-  connectToNewUser,
-  addVideoStream,
 }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -26,7 +21,6 @@ const RoomPage = ({
   const [history, setHistory] = useState([]);
   const [openedUserTab, setOpenedUserTab] = useState(false);
   const [openedChatTab, setOpenedChatTab] = useState(false);
-  const [stream, setStream] = useState(null);
 
   const handleClearCanvas = () => {
     const canvas = canvasRef.current;
@@ -54,62 +48,6 @@ const RoomPage = ({
     setHistory((prevHistory) => prevHistory.slice(0, prevHistory.length - 1));
   };
 
-  const adduserIdInP = async (p, call, div, video) => {
-    p.innerText = "Other User";
-    div.append(p);
-    call.on("stream", (userVideoStream) => {
-      addVideoStream(div, video, userVideoStream);
-    });
-  };
-
-  useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({
-        video: true,
-        audio: true,
-      })
-      .then((stream) => {
-        setStream(stream);
-        const div = document.createElement("div");
-        div.id = user.userId;
-        const p = document.createElement("p");
-        p.innerText = user.name;
-        div.append(p);
-        const myVideo = document.createElement("video");
-
-        addVideoStream(div, myVideo, stream);
-
-        myPeer.on("call", (call) => {
-          console.log("call", call);
-
-          call.answer(stream);
-          const div = document.createElement("div");
-          div.id = call.peer;
-          const video = document.createElement("video");
-          const p = document.createElement("p");
-          adduserIdInP(p, call, div, video);
-        });
-      });
-  }, []);
-
-  useEffect(() => {
-    socket.on("userJoinedMessageBroadcasted", (data) => {
-      setUsers(data.users);
-      navigator.mediaDevices
-        .getUserMedia({
-          video: true,
-          audio: true,
-        })
-        .then((stream) => {
-          console.log(`${data.name} ${data.userId} joined the room`);
-          toast.info(`${data.name} joined the room`);
-          console.log("working");
-          connectToNewUser(data.userId, data.name, stream);
-          console.log("working");
-        });
-    });
-  }, []);
-
   return (
     <div className="row">
       <button
@@ -134,9 +72,10 @@ const RoomPage = ({
           display: "block",
           position: "absolute",
           top: "5%",
-          left: "10%",
+          left: "3%",
           height: "40px",
           width: "100px",
+          marginTop:"55px",
         }}
         onClick={() => setOpenedChatTab(true)}
       >
@@ -263,3 +202,5 @@ const RoomPage = ({
 };
 
 export default RoomPage;
+
+
